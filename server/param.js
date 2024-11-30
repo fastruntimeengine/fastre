@@ -18,28 +18,45 @@ function post(req) {
         req.on('data', chunk => {
             body += chunk.toString();
         });
+
         req.on('end', () => {
             if (body) {
                 try {
-                    const parsed = JSON.parse(body);
+                    let parsed = {};
+
+                    // Check the content type of the request
+                    if (req.headers['content-type'] === 'application/json') {
+                        // Parse JSON body
+                        parsed = JSON.parse(body);
+                    } else if (req.headers['content-type'] === 'application/x-www-form-urlencoded') {
+                        // Parse URL-encoded form data
+                        parsed = Object.fromEntries(new URLSearchParams(body).entries());
+                    } else {
+                        throw new Error('Unsupported content type');
+                    }
+
+                    // Process all parsed data and merge it with global data object
                     for (const key of Object.keys(parsed)) {
                         data[key] = parsed[key];
                     }
+
                     resolve(true);
                 } catch (err) {
-                    log('Invalid JSON', 'error');
+                    log('Invalid input data', 'error');
                     reject(err);
                 }
             } else {
-                resolve(true);
+                resolve(true); // No body provided, resolve without processing
             }
         });
+
         req.on('error', err => {
             log('Request error', 'error');
             reject(err);
         });
     });
 }
+
 
 export default async function getParams(req) {
     const method = req.method;
