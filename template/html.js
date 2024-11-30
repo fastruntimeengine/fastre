@@ -101,16 +101,9 @@ export default async function renderHTML($){
             }
             
             try{
-                rbody = $(tag).attr('body') ? JSON.parse($(tag).attr('body')) : null;
-                if (rbody == null){
-                    rbody = strRender($(tag).attr('body'));
-                }
+                rbody = $(tag).attr('body') ? JSON.parse($(tag).attr('body')) : "";
             } catch {
-                log(`[OUT] [${method}] ${url} failed`, 'error');
-                log("Invalid JSON", 'error');
-                $(tag).replaceWith("<span></span>");
-                tags = $(tagsString)
-                continue;
+                rbody = strRender($(tag).attr('body'));
             }
 
             const id = $(tag).attr('id');
