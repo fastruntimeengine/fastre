@@ -47,9 +47,12 @@ export async function serve(req, res) {
         log("Error parsing cookies", "error");
     }
 
+    let middleware = false;
+
     try {
         //MIDDLEWARE - TURNSTILE
         if (req.method === 'POST' && url.pathname === '/verify-turnstile') {
+            middleware = true;
             const token = data['token'];
 
             if (!token) {
@@ -83,7 +86,7 @@ export async function serve(req, res) {
 
     res.writeHead(status, headers);
     res.end(body);
-    clearData();
+    if (!middleware) clearData();
 
     performance.mark('D');
     performance.measure('A to D', 'A', 'D');
