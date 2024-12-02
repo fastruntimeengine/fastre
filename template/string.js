@@ -3,7 +3,7 @@ import { data } from "../storage/unique.js"
 import { log } from "../modules/log.js";
 import { autoType } from "../modules/type.js";
 
-export function strRender(str){
+export function strRender(str, suppress=false){
     
     //if it is a variable present in the data object
     if (data[str]){
@@ -97,6 +97,6 @@ export function strRender(str){
         return str;
     }
 
-    log(`Unknown ${str}`, 'error')
+    if (!suppress) log(`Unknown ${str}`, 'error')
     return undefined;
 }
