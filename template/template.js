@@ -29,7 +29,12 @@ export default async function render(path){
     if (path.split('.').pop() === 'req'){
         headers["Content-Type"] = "application/json";
         try {
-            body = JSON.stringify(JSON.parse(body.replace(/<[^>]*>/g, '')));
+            body = body.replace(/<[^>]*>/g, '');
+            if (/^\s*$/.test(body)){
+                body = JSON.stringify({});
+            } else {
+                body = JSON.stringify(JSON.parse(body));
+            }
         } catch (error) {
             log(`[500] ${path} didnot return valid JSON`, 'error');
             status = 500;
