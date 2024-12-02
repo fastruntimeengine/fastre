@@ -59,8 +59,13 @@ function post(req) {
 
 
 export default async function getParams(req) {
-    const method = req.method;
-    const url = req.url;
-    const params = method === 'GET' ? get(url) : await post(req);
-    return params;
+    try {
+        const method = req.method;
+        const url = req.url;
+        const params = method === 'GET' ? get(url) : await post(req);
+        return params;
+    } catch (err) {
+        log('Failed to parse request parameters', 'error');
+        return false;
+    }
 }
