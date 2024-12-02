@@ -109,30 +109,78 @@ export default async function renderHTML($){
             const id = $(tag).attr('id');
             let response;
 
-            headers = headers.split(';').map(header => {
-                const [key, value] = header.split(':');
-                return {key, value};
-            });
+            headers = headers
+                .split(';')
+                .map(header => {
+                    const [key, value] = header.split(':').map(part => part.trim());
+                    if (!key || !value) return null; // Ignore malformed headers
+                    try {
+                        return { key: strRender(key, true) || key, value: strRender(value, true) || value };
+                    } catch {
+                        return { key, value };
+                    }
+                })
+                .filter(h => h); // Remove null entries
 
-            try{
-                log(`[OUT] [${method}] ${url} initiated`, 'info');
-                performance.mark("B")
-                const request = bent(url, method, 'json', 200);
-                response = await request(rbody, headers)
-                performance.mark("C")
+            if (headers.some(h => h.key.toLowerCase() === "content-type" && h.value.toLowerCase() === "multipart/form-data")) {
+                const formData = new URLSearchParams();
+                rbody.split('&').forEach(pair => {
+                    const [key, value] = pair.split('=');
+                    formData.append(key, value);
+                });
+                rbody = formData;  // Use URLSearchParams instead of raw string
+            }
+
+            try {
+                performance.mark("B");
+
+                if (method === 'GET') {
+                    headers = Object.fromEntries(headers.map(h => [h.key, h.value]));
+                    const baseUrl = url.split('/').slice(0, 3).join('/')
+                    const endpoint = "/"+url.split('/').slice(3).join('/')
+                    // Perform the request
+                    const request = bent(baseUrl, method, 'json', 200);
+                    response = await request(endpoint, null, headers);
+                } else {
+                    // Perform the request
+                    const request = bent(url, method, 'json', 200);
+                    response = await request(rbody, headers);
+                }
+                
+                performance.mark("C");
                 performance.measure('B to C', 'B', 'C');
                 const time = performance.getEntriesByName('B to C')[0].duration.toFixed(2);
                 performance.clearMeasures('B to C');
-                log(`[OUT] [${method}] ${url} success in ${time}ms`, 'info');
                 
-            } catch (err){
+                log(`[OUT] [${method}] ${url} success in ${time}ms`, 'info');
+            
+                // Check if response status is success or error
+                if (response.status && response.status === 'error') {
+                    log(`Server Response: ${JSON.stringify(response)}`, 'error');
+                }
+            
+            } catch (err) {
                 log(`[OUT] [${method}] ${url} failed`, 'error');
-                log(err, 'error');
-                $(tag).replaceWith("<span></span>");
-                tags = $(tagsString)
-                continue;
+            
+                // Log detailed error response for better debugging
+                const serverResponse = await err.json().catch(() => null) || await err.text().catch(() => null);
+                if (serverResponse) {
+                    //recursively display the error message if it is an object
+                    if (typeof serverResponse === 'object') {
+                        log(`Server Response: ${JSON.stringify(serverResponse)}`, 'error');
+                    } else {
+                        log(`Server Response: ${serverResponse}`, 'error');
+                    }
+                    response = serverResponse;
+                } else {
+                    log(`Unknown Error: ${err.message}`, 'error');
+                    // Replace the tag with a placeholder to prevent further issues
+                    $(tag).replaceWith("<span></span>");
+                    tags = $(tagsString);
+                    continue;
+                }
             }
-
+            
             if (id){
                 appendData(id, autoType(response));
             } else {
