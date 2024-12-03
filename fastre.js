@@ -3,7 +3,7 @@ import boxen from 'boxen';
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
 
-const v = '1.3.0';
+const v = '1.4.0';
 
 console.log(
     boxen(chalk.hex("#04e1c3").bold(`FASTRE ${v}`), {
